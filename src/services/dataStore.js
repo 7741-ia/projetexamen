@@ -16,6 +16,11 @@ function readData() {
   if (!Array.isArray(parsed.users)) {
     parsed.users = [];
   }
+  parsed.collectes = parsed.collectes.map((collecte) => ({
+    ...collecte,
+    contributions: Array.isArray(collecte.contributions) ? collecte.contributions : [],
+    members: Array.isArray(collecte.members) ? collecte.members : []
+  }));
 
   return parsed;
 }
@@ -84,6 +89,7 @@ function createCollecte({ name, type, date, ownerId, ownerUsername }) {
     date,
     ownerId,
     ownerUsername,
+    members: [],
     contributions: [],
     total: 0,
     createdAt: new Date().toISOString()
@@ -94,7 +100,7 @@ function createCollecte({ name, type, date, ownerId, ownerUsername }) {
   return newCollecte;
 }
 
-function addContribution(collecteId, { contributorName, amount }, ownerId) {
+function createMember(collecteId, { name, targetAmount, frequency }, ownerId) {
   const data = readData();
   const collecte = data.collectes.find(
     (item) => item.id === collecteId && canAccessCollecte(item, ownerId)
@@ -104,11 +110,72 @@ function addContribution(collecteId, { contributorName, amount }, ownerId) {
     return null;
   }
 
+  const member = {
+    id: uuidv4(),
+    name: String(name || "").trim(),
+    targetAmount: Number(targetAmount) || 0,
+    frequency: String(frequency || "mensuel"),
+    createdAt: new Date().toISOString()
+  };
+  collecte.members.push(member);
+  writeData(data);
+  return member;
+}
+
+function updateMember(collecteId, memberId, { name, targetAmount, frequency }, ownerId) {
+  const data = readData();
+  const collecte = data.collectes.find(
+    (item) => item.id === collecteId && canAccessCollecte(item, ownerId)
+  );
+
+  if (!collecte) {
+    return null;
+  }
+
+  const member = collecte.members.find((item) => item.id === memberId);
+  if (!member) {
+    return null;
+  }
+
+  member.name = String(name || "").trim();
+  member.targetAmount = Number(targetAmount) || 0;
+  member.frequency = String(frequency || "mensuel");
+  member.updatedAt = new Date().toISOString();
+  writeData(data);
+  return member;
+}
+
+function addContribution(collecteId, { contributorName, amount, memberId }, ownerId) {
+  const data = readData();
+  const collecte = data.collectes.find(
+    (item) => item.id === collecteId && canAccessCollecte(item, ownerId)
+  );
+
+  if (!collecte) {
+    return { error: "collecte_not_found" };
+  }
+
+  let matchedMember = null;
+  if (memberId) {
+    matchedMember = collecte.members.find((member) => member.id === memberId);
+    if (!matchedMember) {
+      return { error: "member_not_found" };
+    }
+  }
+
+  const finalContributorName = matchedMember
+    ? matchedMember.name
+    : String(contributorName || "").trim();
+  if (!finalContributorName) {
+    return { error: "invalid_contributor" };
+  }
+
   const numericAmount = Number(amount) || 0;
   const contribution = {
     id: uuidv4(),
-    contributorName,
+    contributorName: finalContributorName,
     amount: numericAmount,
+    memberId: matchedMember ? matchedMember.id : null,
     createdAt: new Date().toISOString()
   };
 
@@ -118,7 +185,7 @@ function addContribution(collecteId, { contributorName, amount }, ownerId) {
     collecte.contributions.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   writeData(data);
 
-  return collecte;
+  return { collecte };
 }
 
 function authenticateUser(identifier, password) {
@@ -180,6 +247,8 @@ module.exports = {
   getAllCollectes,
   getCollecteById,
   createCollecte,
+  createMember,
+  updateMember,
   addContribution,
   authenticateUser,
   createUser

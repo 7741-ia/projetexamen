@@ -63,13 +63,98 @@
     <a class="btn" href="/collecte/<%= selectedCollecte.id %>/export/excel">Exporter Excel</a>
   </div>
 
+  <article class="card">
+    <h3>Personnes suivies (objectif par periode)</h3>
+    <form method="POST" action="/collecte/<%= selectedCollecte.id %>/member/create" class="form-grid">
+      <label for="memberName">Nom de la personne</label>
+      <input id="memberName" name="name" type="text" required />
+
+      <label for="memberTargetAmount">Montant prevu (FC)</label>
+      <input id="memberTargetAmount" name="targetAmount" type="number" min="1" required />
+
+      <label for="memberFrequency">Frequence</label>
+      <select id="memberFrequency" name="frequency" required>
+        <option value="journalier">Journalier</option>
+        <option value="hebdomadaire">Hebdomadaire</option>
+        <option value="mensuel" selected>Mensuel</option>
+        <option value="annuel">Annuel</option>
+      </select>
+
+      <button type="submit" class="btn btn-primary">Ajouter la personne</button>
+    </form>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Personne</th>
+            <th>Frequence</th>
+            <th>Objectif</th>
+            <th>Paye (periode courante)</th>
+            <th>Statut</th>
+            <th>Periode</th>
+            <th>Modifier</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!memberStatuses || !memberStatuses.length) { %>
+          <tr>
+            <td colspan="7" class="muted">Aucune personne enregistree pour cette collecte.</td>
+          </tr>
+          <% } %>
+          <% (memberStatuses || []).forEach((member) => { %>
+          <tr>
+            <td><%= member.name %></td>
+            <td><%= member.frequency %></td>
+            <td><%= Number(member.targetAmount).toLocaleString("fr-FR") %> FC</td>
+            <td><%= Number(member.paidThisPeriod).toLocaleString("fr-FR") %> FC</td>
+            <td>
+              <% if (member.isCompleted) { %>
+              <span class="status-badge done">Termine</span>
+              <% } else { %>
+              <span class="status-badge pending">En cours (<%= Number(member.remaining).toLocaleString("fr-FR") %> FC restants)</span>
+              <% } %>
+            </td>
+            <td><%= member.periodLabel %></td>
+            <td>
+              <form
+                method="POST"
+                action="/collecte/<%= selectedCollecte.id %>/member/<%= member.id %>/update"
+                class="form-grid member-edit-form"
+              >
+                <input name="name" type="text" value="<%= member.name %>" required />
+                <input name="targetAmount" type="number" min="1" value="<%= member.targetAmount %>" required />
+                <select name="frequency" required>
+                  <option value="journalier" <%= member.frequency === "journalier" ? "selected" : "" %>>Journalier</option>
+                  <option value="hebdomadaire" <%= member.frequency === "hebdomadaire" ? "selected" : "" %>>Hebdomadaire</option>
+                  <option value="mensuel" <%= member.frequency === "mensuel" ? "selected" : "" %>>Mensuel</option>
+                  <option value="annuel" <%= member.frequency === "annuel" ? "selected" : "" %>>Annuel</option>
+                </select>
+                <button type="submit" class="btn">Editer</button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
   <form
     id="contributionForm"
     class="form-grid inline-form"
     data-collecte-id="<%= selectedCollecte.id %>"
   >
+    <label for="memberId">Associer a une personne (optionnel)</label>
+    <select id="memberId" name="memberId">
+      <option value="">-- Aucune --</option>
+      <% (memberStatuses || []).forEach((member) => { %>
+      <option value="<%= member.id %>"><%= member.name %></option>
+      <% }) %>
+    </select>
+
     <label for="contributorName">Nom du contributeur</label>
-    <input id="contributorName" name="contributorName" type="text" required />
+    <input id="contributorName" name="contributorName" type="text" />
 
     <label for="amount">Montant</label>
     <input id="amount" name="amount" type="number" min="1" required />
@@ -85,18 +170,22 @@
         <tr>
           <th>Contributeur</th>
           <th>Montant</th>
+          <th>Personne suivie</th>
         </tr>
       </thead>
       <tbody id="contributionsBody">
         <% if (!selectedCollecte.contributions.length) { %>
         <tr id="emptyRow">
-          <td colspan="2" class="muted">Aucune contribution pour le moment.</td>
+          <td colspan="3" class="muted">Aucune contribution pour le moment.</td>
         </tr>
         <% } %>
         <% selectedCollecte.contributions.forEach((contribution) => { %>
         <tr>
           <td><%= contribution.contributorName %></td>
           <td><%= Number(contribution.amount).toLocaleString("fr-FR") %> FC</td>
+          <td>
+            <%= contribution.memberId ? "Oui" : "Non" %>
+          </td>
         </tr>
         <% }) %>
       </tbody>

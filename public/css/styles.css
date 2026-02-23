@@ -310,6 +310,31 @@ td a {
   display: none;
 }
 
+.status-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.status-badge.done {
+  background: #dcfae3;
+  color: #146336;
+  border: 1px solid #afe7bc;
+}
+
+.status-badge.pending {
+  background: #fff2db;
+  color: #8a4b00;
+  border: 1px solid #ffd59a;
+}
+
+.member-edit-form {
+  gap: 8px;
+  min-width: 220px;
+}
+
 .total-box {
   font-size: 1.05rem;
   background: #e8f7f8;

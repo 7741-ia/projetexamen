@@ -6,6 +6,8 @@ const {
   getAllCollectes,
   getCollecteById,
   createCollecte,
+  createMember,
+  updateMember,
   addContribution,
   authenticateUser,
   createUser
@@ -40,6 +42,79 @@ function getSessionUser(req) {
     };
   }
   return null;
+}
+
+function normalizeFrequency(frequency) {
+  const allowed = ["journalier", "hebdomadaire", "mensuel", "annuel"];
+  return allowed.includes(frequency) ? frequency : "mensuel";
+}
+
+function getPeriodStart(date, frequency) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+
+  if (frequency === "hebdomadaire") {
+    const day = start.getDay();
+    const mondayOffset = day === 0 ? 6 : day - 1;
+    start.setDate(start.getDate() - mondayOffset);
+  } else if (frequency === "mensuel") {
+    start.setDate(1);
+  } else if (frequency === "annuel") {
+    start.setMonth(0, 1);
+  }
+
+  return start;
+}
+
+function getNextPeriodStart(periodStart, frequency) {
+  const next = new Date(periodStart);
+  if (frequency === "journalier") {
+    next.setDate(next.getDate() + 1);
+  } else if (frequency === "hebdomadaire") {
+    next.setDate(next.getDate() + 7);
+  } else if (frequency === "mensuel") {
+    next.setMonth(next.getMonth() + 1);
+  } else {
+    next.setFullYear(next.getFullYear() + 1);
+  }
+  return next;
+}
+
+function formatDateFr(value) {
+  return new Date(value).toLocaleDateString("fr-FR");
+}
+
+function computeMemberStatuses(collecte) {
+  const now = new Date();
+  const contributions = Array.isArray(collecte.contributions) ? collecte.contributions : [];
+  const members = Array.isArray(collecte.members) ? collecte.members : [];
+
+  return members.map((member) => {
+    const frequency = normalizeFrequency(member.frequency);
+    const periodStart = getPeriodStart(now, frequency);
+    const nextPeriodStart = getNextPeriodStart(periodStart, frequency);
+    const paidThisPeriod = contributions
+      .filter(
+        (item) =>
+          item.memberId === member.id &&
+          new Date(item.createdAt) >= periodStart &&
+          new Date(item.createdAt) < nextPeriodStart
+      )
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+    const targetAmount = Number(member.targetAmount || 0);
+    const isCompleted = targetAmount > 0 && paidThisPeriod >= targetAmount;
+
+    return {
+      ...member,
+      frequency,
+      targetAmount,
+      paidThisPeriod,
+      remaining: Math.max(targetAmount - paidThisPeriod, 0),
+      isCompleted,
+      periodLabel: `${formatDateFr(periodStart)} -> ${formatDateFr(nextPeriodStart)}`
+    };
+  });
 }
 
 router.get("/", (req, res) => {
@@ -184,11 +259,13 @@ router.get("/collecte", requireAuth, (req, res) => {
   const collectes = getAllCollectes(sessionUser.userId);
   const selectedId = req.query.id || (collectes[0] && collectes[0].id);
   const selectedCollecte = selectedId ? getCollecteById(selectedId, sessionUser.userId) : null;
+  const memberStatuses = selectedCollecte ? computeMemberStatuses(selectedCollecte) : [];
 
   return res.render("collecte", {
     title: "Collecte",
     collectes,
     selectedCollecte,
+    memberStatuses,
     success: null,
     error: null
   });
@@ -232,22 +309,38 @@ router.post("/collecte/:id/contribution", requireAuth, (req, res) => {
     });
   }
 
-  const { contributorName, amount } = req.body;
+  const contributorName = String(req.body.contributorName || "").trim();
+  const amount = req.body.amount;
+  const memberId = String(req.body.memberId || "").trim();
   const parsedAmount = Number(amount);
 
-  if (!contributorName || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+  if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
     return res.status(400).json({
       success: false,
-      message: "Nom et montant valide obligatoires."
+      message: "Montant valide obligatoire."
     });
   }
 
-  const collecte = addContribution(req.params.id, {
-    contributorName: contributorName.trim(),
-    amount: parsedAmount
+  const result = addContribution(req.params.id, {
+    contributorName,
+    amount: parsedAmount,
+    memberId: memberId || null
   }, sessionUser.userId);
 
-  if (!collecte) {
+  if (result.error === "member_not_found") {
+    return res.status(404).json({
+      success: false,
+      message: "Personne introuvable."
+    });
+  }
+  if (result.error === "invalid_contributor") {
+    return res.status(400).json({
+      success: false,
+      message: "Nom du contributeur obligatoire."
+    });
+  }
+
+  if (result.error || !result.collecte) {
     return res.status(404).json({
       success: false,
       message: "Collecte introuvable."
@@ -256,8 +349,64 @@ router.post("/collecte/:id/contribution", requireAuth, (req, res) => {
 
   return res.json({
     success: true,
-    collecte
+    collecte: result.collecte
   });
+});
+
+router.post("/collecte/:id/member/create", requireAuth, (req, res) => {
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.redirect("/login");
+  }
+
+  const name = String(req.body.name || "").trim();
+  const targetAmount = Number(req.body.targetAmount);
+  const frequency = normalizeFrequency(String(req.body.frequency || "mensuel"));
+
+  if (!name || Number.isNaN(targetAmount) || targetAmount <= 0) {
+    const collectes = getAllCollectes(sessionUser.userId);
+    const selectedCollecte = getCollecteById(req.params.id, sessionUser.userId);
+    const memberStatuses = selectedCollecte ? computeMemberStatuses(selectedCollecte) : [];
+    return res.status(400).render("collecte", {
+      title: "Collecte",
+      collectes,
+      selectedCollecte,
+      memberStatuses,
+      success: null,
+      error: "Nom, montant prevu et frequence valides obligatoires."
+    });
+  }
+
+  const member = createMember(req.params.id, { name, targetAmount, frequency }, sessionUser.userId);
+  if (!member) {
+    return res.status(404).send("Collecte introuvable");
+  }
+
+  return res.redirect(`/collecte?id=${req.params.id}`);
+});
+
+router.post("/collecte/:collecteId/member/:memberId/update", requireAuth, (req, res) => {
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.redirect("/login");
+  }
+
+  const name = String(req.body.name || "").trim();
+  const targetAmount = Number(req.body.targetAmount);
+  const frequency = normalizeFrequency(String(req.body.frequency || "mensuel"));
+
+  if (!name || Number.isNaN(targetAmount) || targetAmount <= 0) {
+    return res.redirect(`/collecte?id=${req.params.collecteId}`);
+  }
+
+  updateMember(
+    req.params.collecteId,
+    req.params.memberId,
+    { name, targetAmount, frequency },
+    sessionUser.userId
+  );
+
+  return res.redirect(`/collecte?id=${req.params.collecteId}`);
 });
 
 router.get("/collecte/:id/export/pdf", requireAuth, async (req, res) => {
