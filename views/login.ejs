@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connexion | CollecteX</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body class="auth-page">
+    <main class="auth-wrapper">
+      <section class="card auth-card">
+        <h1>CollecteX</h1>
+        <p class="muted">Connexion administrateur</p>
+        <% if (error) { %>
+        <div class="alert error"><%= error %></div>
+        <% } %>
+        <form method="POST" action="/login" class="form-grid">
+          <label for="username">Utilisateur</label>
+          <input id="username" name="username" type="text" required />
+
+          <label for="password">Mot de passe</label>
+          <input id="password" name="password" type="password" required />
+
+          <button class="btn btn-primary" type="submit">Se connecter</button>
+        </form>
+        <small class="muted">Identifiants modifiables dans `app-config.json`</small>
+      </section>
+    </main>
+  </body>
+</html>

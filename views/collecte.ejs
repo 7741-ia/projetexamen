@@ -1,0 +1,109 @@
+<%- include("partials/header", { title: title }) %>
+
+<section class="split">
+  <article class="card">
+    <h2>Creer une collecte</h2>
+    <% if (error) { %>
+    <div class="alert error"><%= error %></div>
+    <% } %>
+    <form method="POST" action="/collecte/create" class="form-grid">
+      <label for="name">Nom de la collecte</label>
+      <input id="name" name="name" type="text" required />
+
+      <label for="type">Type</label>
+      <select id="type" name="type">
+        <option value="offrande">Offrande</option>
+        <option value="tontine">Tontine</option>
+        <option value="contribution">Contribution</option>
+        <option value="autre">Autre</option>
+      </select>
+
+      <label for="date">Date</label>
+      <input id="date" name="date" type="date" required />
+
+      <button class="btn btn-primary" type="submit">Enregistrer la collecte</button>
+    </form>
+  </article>
+
+  <article class="card">
+    <h2>Selectionner une collecte</h2>
+    <form method="GET" action="/collecte" class="form-grid">
+      <label for="id">Collecte</label>
+      <select id="id" name="id">
+        <% collectes.forEach((item) => { %>
+        <option value="<%= item.id %>" <%= selectedCollecte && selectedCollecte.id === item.id ? "selected" : "" %>>
+          <%= item.name %> - <%= item.date %>
+        </option>
+        <% }) %>
+      </select>
+      <button type="submit" class="btn">Afficher</button>
+    </form>
+  </article>
+</section>
+
+<section class="card">
+  <% if (!selectedCollecte) { %>
+  <p class="muted">Aucune collecte selectionnee. Creez ou choisissez une collecte.</p>
+  <% } else { %>
+  <div class="section-head">
+    <div>
+      <h2><%= selectedCollecte.name %></h2>
+      <p class="muted">
+        Type: <%= selectedCollecte.type %> | Date: <%= selectedCollecte.date %>
+      </p>
+    </div>
+    <div class="total-box">
+      Total en temps reel:
+      <strong id="totalValue"><%= Number(selectedCollecte.total).toLocaleString("fr-FR") %> FC</strong>
+    </div>
+  </div>
+
+  <div class="actions">
+    <a class="btn" href="/collecte/<%= selectedCollecte.id %>/export/pdf">Exporter PDF</a>
+    <a class="btn" href="/collecte/<%= selectedCollecte.id %>/export/excel">Exporter Excel</a>
+  </div>
+
+  <form
+    id="contributionForm"
+    class="form-grid inline-form"
+    data-collecte-id="<%= selectedCollecte.id %>"
+  >
+    <label for="contributorName">Nom du contributeur</label>
+    <input id="contributorName" name="contributorName" type="text" required />
+
+    <label for="amount">Montant</label>
+    <input id="amount" name="amount" type="number" min="1" required />
+
+    <button type="submit" class="btn btn-primary">Ajouter contribution</button>
+  </form>
+
+  <div id="feedback" class="alert hidden"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Contributeur</th>
+          <th>Montant</th>
+        </tr>
+      </thead>
+      <tbody id="contributionsBody">
+        <% if (!selectedCollecte.contributions.length) { %>
+        <tr id="emptyRow">
+          <td colspan="2" class="muted">Aucune contribution pour le moment.</td>
+        </tr>
+        <% } %>
+        <% selectedCollecte.contributions.forEach((contribution) => { %>
+        <tr>
+          <td><%= contribution.contributorName %></td>
+          <td><%= Number(contribution.amount).toLocaleString("fr-FR") %> FC</td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+
+<script src="/js/collecte.js"></script>
+<%- include("partials/footer") %>

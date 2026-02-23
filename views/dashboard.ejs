@@ -1,0 +1,54 @@
+<%- include("partials/header", { title: title }) %>
+
+<section class="hero card">
+  <h1>Tableau de bord</h1>
+  <p class="muted">Suivi rapide des collectes, totaux et dernieres operations.</p>
+</section>
+
+<section class="stats-grid">
+  <article class="card stat">
+    <h2>Nombre de collectes</h2>
+    <p><%= collectesCount %></p>
+  </article>
+  <article class="card stat">
+    <h2>Total global</h2>
+    <p><%= totalGlobal.toLocaleString("fr-FR") %> FC</p>
+  </article>
+</section>
+
+<section class="card">
+  <div class="section-head">
+    <h2>Dernieres collectes</h2>
+    <a class="btn btn-primary" href="/collecte">Nouvelle collecte</a>
+  </div>
+  <% if (!latestCollectes.length) { %>
+  <p class="muted">Aucune collecte enregistree.</p>
+  <% } else { %>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Type</th>
+          <th>Date</th>
+          <th>Total</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% latestCollectes.forEach((collecte) => { %>
+        <tr>
+          <td><%= collecte.name %></td>
+          <td><%= collecte.type %></td>
+          <td><%= collecte.date %></td>
+          <td><%= Number(collecte.total).toLocaleString("fr-FR") %> FC</td>
+          <td><a href="/collecte?id=<%= collecte.id %>">Ouvrir</a></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+
+<%- include("partials/footer") %>

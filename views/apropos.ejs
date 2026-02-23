@@ -1,0 +1,44 @@
+<%- include("partials/header", { title: title }) %>
+
+<section class="card">
+  <h2><%= about.appName %></h2>
+  <p><%= about.description %></p>
+</section>
+
+<section class="card">
+  <h3>Informations du concepteur</h3>
+  <p><strong>Nom:</strong> <%= about.designerName %></p>
+  <p><strong>Email:</strong> <%= about.email %></p>
+  <p><strong>Telephone:</strong> <%= about.phone %></p>
+  <p><strong>Annee:</strong> <%= about.creationYear %></p>
+</section>
+
+<section class="card">
+  <h3>Preparation monetisation</h3>
+  <p class="muted">
+    Cette section est prete pour une future activation abonnement/licence.
+  </p>
+  <p><strong>Activation:</strong> <%= monetization.enabled ? "Oui" : "Non" %></p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Plan</th>
+          <th>Prix</th>
+          <th>Periode</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% monetization.plans.forEach((plan) => { %>
+        <tr>
+          <td><%= plan.name %></td>
+          <td><%= Number(plan.price).toLocaleString("fr-FR") %> FC</td>
+          <td><%= plan.period %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include("partials/footer") %>

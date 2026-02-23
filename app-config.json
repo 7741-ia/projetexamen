@@ -1,0 +1,29 @@
+{
+  "admin": {
+    "username": "admin",
+    "password": "1234"
+  },
+  "about": {
+    "appName": "CollecteX",
+    "description": "Application de digitalisation des collectes pour eglises, associations et tontines.",
+    "designerName": "Daniel Amisi",
+    "email": "danielamisi774@gmail.com",
+    "phone": "243 859 886 065",
+    "creationYear": "2026"
+  },
+  "monetization": {
+    "enabled": false,
+    "plans": [
+      {
+        "name": "Essentiel",
+        "price": 0,
+        "period": "mensuel"
+      },
+      {
+        "name": "Pro",
+        "price": 5000,
+        "period": "mensuel"
+      }
+    ]
+  }
+}

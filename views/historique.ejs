@@ -1,0 +1,37 @@
+<%- include("partials/header", { title: title }) %>
+
+<section class="card">
+  <h2>Historique des collectes</h2>
+  <% if (!collectes.length) { %>
+  <p class="muted">Aucune collecte enregistree.</p>
+  <% } else { %>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Type</th>
+          <th>Date</th>
+          <th>Contributions</th>
+          <th>Total</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% collectes.forEach((collecte) => { %>
+        <tr>
+          <td><%= collecte.name %></td>
+          <td><%= collecte.type %></td>
+          <td><%= collecte.date %></td>
+          <td><%= collecte.contributions.length %></td>
+          <td><%= Number(collecte.total).toLocaleString("fr-FR") %> FC</td>
+          <td><a href="/collecte?id=<%= collecte.id %>">Details</a></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+
+<%- include("partials/footer") %>

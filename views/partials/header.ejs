@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %> | CollecteX</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand">CollecteX</div>
+        <small class="brand-tag">Gestion simple des collectes</small>
+      </div>
+      <nav class="menu">
+        <a class="<%= title === 'Dashboard' ? 'active' : '' %>" href="/dashboard">Dashboard</a>
+        <a class="<%= title === 'Collecte' ? 'active' : '' %>" href="/collecte">Collecte</a>
+        <a class="<%= title === 'Historique' ? 'active' : '' %>" href="/historique">Historique</a>
+        <a class="<%= title === 'A propos' ? 'active' : '' %>" href="/apropos">A propos</a>
+      </nav>
+      <form action="/logout" method="POST">
+        <button type="submit" class="btn btn-danger">Deconnexion</button>
+      </form>
+    </header>
+    <main class="container">

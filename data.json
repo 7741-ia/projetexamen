@@ -1,0 +1,35 @@
+{
+  "collectes": [
+    {
+      "id": "5e0f935f-3fd2-4d40-9722-a4142420d4e6",
+      "name": "eglise",
+      "type": "offrande",
+      "date": "2026-02-17",
+      "contributions": [
+        {
+          "id": "cc0154aa-619c-43e7-a53b-140807f54ad9",
+          "contributorName": "daniel",
+          "amount": 1000,
+          "createdAt": "2026-02-17T08:06:03.562Z"
+        },
+        {
+          "id": "4872a92a-85fa-40a7-86b2-0e39fa236cfc",
+          "contributorName": "best",
+          "amount": 5000,
+          "createdAt": "2026-02-17T08:06:28.120Z"
+        }
+      ],
+      "total": 6000,
+      "createdAt": "2026-02-17T08:05:29.008Z"
+    },
+    {
+      "id": "6a489d68-06d4-465c-9759-3e7118b2b627",
+      "name": "universite",
+      "type": "contribution",
+      "date": "2026-02-21",
+      "contributions": [],
+      "total": 0,
+      "createdAt": "2026-02-17T07:57:06.071Z"
+    }
+  ]
+}
