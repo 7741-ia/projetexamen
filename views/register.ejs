@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inscription | CollecteX</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body class="auth-page">
+    <main class="auth-wrapper">
+      <section class="card auth-card">
+        <h1>CollecteX</h1>
+        <p class="muted">Creation de compte</p>
+        <% if (error) { %>
+        <div class="alert error"><%= error %></div>
+        <% } %>
+        <form method="POST" action="/register" class="form-grid">
+          <label for="username">Utilisateur</label>
+          <input id="username" name="username" type="text" minlength="3" required />
+
+          <label for="password">Mot de passe</label>
+          <input id="password" name="password" type="password" minlength="4" required />
+
+          <label for="confirmPassword">Confirmer le mot de passe</label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            minlength="4"
+            required
+          />
+
+          <button class="btn btn-primary" type="submit">Creer le compte</button>
+        </form>
+        <p class="muted">
+          Deja inscrit ?
+          <a href="/login">Se connecter</a>
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

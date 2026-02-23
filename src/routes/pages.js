@@ -6,7 +6,9 @@ const {
   getAllCollectes,
   getCollecteById,
   createCollecte,
-  addContribution
+  addContribution,
+  authenticateUser,
+  createUser
 } = require("../services/dataStore");
 const {
   exportCollecteToPdf,
@@ -42,12 +44,14 @@ router.get("/login", (req, res) => {
 });
 
 router.post("/login", (req, res) => {
-  const { username, password } = req.body;
+  const username = String(req.body.username || "").trim();
+  const password = String(req.body.password || "");
   const config = readConfig();
-  const validUser = username === config.admin.username;
-  const validPassword = password === config.admin.password;
+  const validAdmin =
+    username === config.admin.username && password === config.admin.password;
+  const validRegisteredUser = Boolean(authenticateUser(username, password));
 
-  if (!validUser || !validPassword) {
+  if (!validAdmin && !validRegisteredUser) {
     return res.status(401).render("login", {
       title: "Connexion",
       error: "Identifiants invalides."
@@ -56,6 +60,63 @@ router.post("/login", (req, res) => {
 
   req.session.isAuthenticated = true;
   req.session.adminUsername = username;
+  return res.redirect("/dashboard");
+});
+
+router.get("/register", (req, res) => {
+  if (req.session?.isAuthenticated) {
+    return res.redirect("/dashboard");
+  }
+
+  return res.render("register", {
+    title: "Inscription",
+    error: null
+  });
+});
+
+router.post("/register", (req, res) => {
+  const username = String(req.body.username || "").trim();
+  const password = String(req.body.password || "");
+  const confirmPassword = String(req.body.confirmPassword || "");
+
+  if (!username || !password) {
+    return res.status(400).render("register", {
+      title: "Inscription",
+      error: "Nom d'utilisateur et mot de passe obligatoires."
+    });
+  }
+
+  if (username.length < 3) {
+    return res.status(400).render("register", {
+      title: "Inscription",
+      error: "Le nom d'utilisateur doit avoir au moins 3 caracteres."
+    });
+  }
+
+  if (password.length < 4) {
+    return res.status(400).render("register", {
+      title: "Inscription",
+      error: "Le mot de passe doit avoir au moins 4 caracteres."
+    });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).render("register", {
+      title: "Inscription",
+      error: "La confirmation du mot de passe ne correspond pas."
+    });
+  }
+
+  const result = createUser({ username, password });
+  if (!result.created) {
+    return res.status(409).render("register", {
+      title: "Inscription",
+      error: "Ce nom d'utilisateur existe deja."
+    });
+  }
+
+  req.session.isAuthenticated = true;
+  req.session.adminUsername = result.user.username;
   return res.redirect("/dashboard");
 });
 
