@@ -28,6 +28,20 @@ function normalizeType(type) {
   return allowed.includes(type) ? type : "autre";
 }
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
+}
+
+function getSessionUser(req) {
+  if (req.session?.userId) {
+    return {
+      userId: req.session.userId,
+      username: req.session.username || "user"
+    };
+  }
+  return null;
+}
+
 router.get("/", (req, res) => {
   return res.redirect("/login");
 });
@@ -49,7 +63,7 @@ router.post("/login", (req, res) => {
   const config = readConfig();
   const validAdmin =
     username === config.admin.username && password === config.admin.password;
-  const validRegisteredUser = Boolean(authenticateUser(username, password));
+  const validRegisteredUser = authenticateUser(username, password);
 
   if (!validAdmin && !validRegisteredUser) {
     return res.status(401).render("login", {
@@ -59,7 +73,15 @@ router.post("/login", (req, res) => {
   }
 
   req.session.isAuthenticated = true;
-  req.session.adminUsername = username;
+  if (validAdmin) {
+    req.session.userId = "admin";
+    req.session.username = config.admin.username;
+    req.session.email = "";
+  } else {
+    req.session.userId = validRegisteredUser.id;
+    req.session.username = validRegisteredUser.username;
+    req.session.email = validRegisteredUser.email || "";
+  }
   return res.redirect("/dashboard");
 });
 
@@ -76,13 +98,14 @@ router.get("/register", (req, res) => {
 
 router.post("/register", (req, res) => {
   const username = String(req.body.username || "").trim();
+  const email = String(req.body.email || "").trim();
   const password = String(req.body.password || "");
   const confirmPassword = String(req.body.confirmPassword || "");
 
-  if (!username || !password) {
+  if (!username || !email || !password) {
     return res.status(400).render("register", {
       title: "Inscription",
-      error: "Nom d'utilisateur et mot de passe obligatoires."
+      error: "Nom d'utilisateur, email et mot de passe obligatoires."
     });
   }
 
@@ -90,6 +113,13 @@ router.post("/register", (req, res) => {
     return res.status(400).render("register", {
       title: "Inscription",
       error: "Le nom d'utilisateur doit avoir au moins 3 caracteres."
+    });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).render("register", {
+      title: "Inscription",
+      error: "Adresse email invalide."
     });
   }
 
@@ -107,16 +137,18 @@ router.post("/register", (req, res) => {
     });
   }
 
-  const result = createUser({ username, password });
+  const result = createUser({ username, email, password });
   if (!result.created) {
     return res.status(409).render("register", {
       title: "Inscription",
-      error: "Ce nom d'utilisateur existe deja."
+      error: "Ce nom d'utilisateur ou cet email existe deja."
     });
   }
 
   req.session.isAuthenticated = true;
-  req.session.adminUsername = result.user.username;
+  req.session.userId = result.user.id;
+  req.session.username = result.user.username;
+  req.session.email = result.user.email;
   return res.redirect("/dashboard");
 });
 
@@ -127,7 +159,12 @@ router.post("/logout", requireAuth, (req, res) => {
 });
 
 router.get("/dashboard", requireAuth, (req, res) => {
-  const collectes = getAllCollectes();
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.redirect("/login");
+  }
+
+  const collectes = getAllCollectes(sessionUser.userId);
   const totalGlobal = collectes.reduce((sum, collecte) => sum + Number(collecte.total || 0), 0);
 
   return res.render("dashboard", {
@@ -139,9 +176,14 @@ router.get("/dashboard", requireAuth, (req, res) => {
 });
 
 router.get("/collecte", requireAuth, (req, res) => {
-  const collectes = getAllCollectes();
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.redirect("/login");
+  }
+
+  const collectes = getAllCollectes(sessionUser.userId);
   const selectedId = req.query.id || (collectes[0] && collectes[0].id);
-  const selectedCollecte = selectedId ? getCollecteById(selectedId) : null;
+  const selectedCollecte = selectedId ? getCollecteById(selectedId, sessionUser.userId) : null;
 
   return res.render("collecte", {
     title: "Collecte",
@@ -153,9 +195,14 @@ router.get("/collecte", requireAuth, (req, res) => {
 });
 
 router.post("/collecte/create", requireAuth, (req, res) => {
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.redirect("/login");
+  }
+
   const { name, type, date } = req.body;
   if (!name || !date) {
-    const collectes = getAllCollectes();
+    const collectes = getAllCollectes(sessionUser.userId);
     return res.status(400).render("collecte", {
       title: "Collecte",
       collectes,
@@ -168,13 +215,23 @@ router.post("/collecte/create", requireAuth, (req, res) => {
   const collecte = createCollecte({
     name: name.trim(),
     type: normalizeType(type),
-    date
+    date,
+    ownerId: sessionUser.userId,
+    ownerUsername: sessionUser.username
   });
 
   return res.redirect(`/collecte?id=${collecte.id}`);
 });
 
 router.post("/collecte/:id/contribution", requireAuth, (req, res) => {
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.status(401).json({
+      success: false,
+      message: "Session invalide."
+    });
+  }
+
   const { contributorName, amount } = req.body;
   const parsedAmount = Number(amount);
 
@@ -188,7 +245,7 @@ router.post("/collecte/:id/contribution", requireAuth, (req, res) => {
   const collecte = addContribution(req.params.id, {
     contributorName: contributorName.trim(),
     amount: parsedAmount
-  });
+  }, sessionUser.userId);
 
   if (!collecte) {
     return res.status(404).json({
@@ -204,7 +261,12 @@ router.post("/collecte/:id/contribution", requireAuth, (req, res) => {
 });
 
 router.get("/collecte/:id/export/pdf", requireAuth, async (req, res) => {
-  const collecte = getCollecteById(req.params.id);
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.redirect("/login");
+  }
+
+  const collecte = getCollecteById(req.params.id, sessionUser.userId);
   if (!collecte) {
     return res.status(404).send("Collecte introuvable");
   }
@@ -214,7 +276,12 @@ router.get("/collecte/:id/export/pdf", requireAuth, async (req, res) => {
 });
 
 router.get("/collecte/:id/export/excel", requireAuth, async (req, res) => {
-  const collecte = getCollecteById(req.params.id);
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.redirect("/login");
+  }
+
+  const collecte = getCollecteById(req.params.id, sessionUser.userId);
   if (!collecte) {
     return res.status(404).send("Collecte introuvable");
   }
@@ -224,7 +291,12 @@ router.get("/collecte/:id/export/excel", requireAuth, async (req, res) => {
 });
 
 router.get("/historique", requireAuth, (req, res) => {
-  const collectes = getAllCollectes();
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.redirect("/login");
+  }
+
+  const collectes = getAllCollectes(sessionUser.userId);
   return res.render("historique", {
     title: "Historique",
     collectes

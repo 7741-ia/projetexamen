@@ -49,22 +49,41 @@ function verifyPassword(password, passwordHash) {
   return crypto.timingSafeEqual(derivedKey, storedKey);
 }
 
-function getAllCollectes() {
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function canAccessCollecte(collecte, ownerId) {
+  if (!collecte || !ownerId) {
+    return false;
+  }
+
+  // Backward compatibility: old collectes without owner are considered admin-owned.
+  if (!collecte.ownerId) {
+    return ownerId === "admin";
+  }
+
+  return collecte.ownerId === ownerId;
+}
+
+function getAllCollectes(ownerId) {
   const data = readData();
-  return data.collectes;
+  return data.collectes.filter((collecte) => canAccessCollecte(collecte, ownerId));
 }
 
-function getCollecteById(id) {
-  return getAllCollectes().find((collecte) => collecte.id === id) || null;
+function getCollecteById(id, ownerId) {
+  return getAllCollectes(ownerId).find((collecte) => collecte.id === id) || null;
 }
 
-function createCollecte({ name, type, date }) {
+function createCollecte({ name, type, date, ownerId, ownerUsername }) {
   const data = readData();
   const newCollecte = {
     id: uuidv4(),
     name,
     type,
     date,
+    ownerId,
+    ownerUsername,
     contributions: [],
     total: 0,
     createdAt: new Date().toISOString()
@@ -75,9 +94,11 @@ function createCollecte({ name, type, date }) {
   return newCollecte;
 }
 
-function addContribution(collecteId, { contributorName, amount }) {
+function addContribution(collecteId, { contributorName, amount }, ownerId) {
   const data = readData();
-  const collecte = data.collectes.find((item) => item.id === collecteId);
+  const collecte = data.collectes.find(
+    (item) => item.id === collecteId && canAccessCollecte(item, ownerId)
+  );
 
   if (!collecte) {
     return null;
@@ -100,19 +121,13 @@ function addContribution(collecteId, { contributorName, amount }) {
   return collecte;
 }
 
-function getUserByUsername(username) {
+function authenticateUser(identifier, password) {
   const data = readData();
-  return (
-    data.users.find(
-      (user) => String(user.username).toLowerCase() === String(username).toLowerCase()
-    ) || null
-  );
-}
-
-function authenticateUser(username, password) {
-  const data = readData();
+  const normalizedIdentifier = String(identifier || "").trim().toLowerCase();
   const user = data.users.find(
-    (item) => String(item.username).toLowerCase() === String(username).toLowerCase()
+    (item) =>
+      String(item.username).toLowerCase() === normalizedIdentifier ||
+      normalizeEmail(item.email) === normalizedIdentifier
   );
 
   if (!user) {
@@ -134,13 +149,15 @@ function authenticateUser(username, password) {
   return null;
 }
 
-function createUser({ username, password }) {
+function createUser({ username, email, password }) {
   const data = readData();
   const normalizedUsername = String(username || "").trim();
+  const normalizedEmail = normalizeEmail(email);
 
   const userExists = data.users.some(
     (user) =>
-      String(user.username).toLowerCase() === normalizedUsername.toLowerCase()
+      String(user.username).toLowerCase() === normalizedUsername.toLowerCase() ||
+      normalizeEmail(user.email) === normalizedEmail
   );
   if (userExists) {
     return { created: false, reason: "exists" };
@@ -149,6 +166,7 @@ function createUser({ username, password }) {
   const newUser = {
     id: uuidv4(),
     username: normalizedUsername,
+    email: normalizedEmail,
     passwordHash: hashPassword(password),
     createdAt: new Date().toISOString()
   };
@@ -163,7 +181,6 @@ module.exports = {
   getCollecteById,
   createCollecte,
   addContribution,
-  getUserByUsername,
   authenticateUser,
   createUser
 };
