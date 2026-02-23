@@ -139,9 +139,9 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 22px;
+  padding: 24px;
   box-shadow: var(--shadow);
-  animation: rise-in 300ms ease both;
+  animation: rise-in 360ms ease both;
 }
 
 .container > *:nth-child(2) {
@@ -252,12 +252,13 @@ button:focus {
   justify-content: center;
   background: #e6edf0;
   color: var(--menu-text);
-  transition: transform 150ms ease, filter 150ms ease;
+  transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease;
 }
 
 .btn:hover {
   transform: translateY(-1px);
   filter: brightness(0.98);
+  box-shadow: 0 8px 18px rgba(13, 51, 63, 0.14);
 }
 
 .btn-primary {
@@ -282,6 +283,49 @@ button:focus {
   flex-wrap: wrap;
 }
 
+.help-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.help-step {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(180deg, var(--surface-soft), var(--surface));
+  animation: soft-float 4.5s ease-in-out infinite;
+}
+
+.help-step:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.help-step:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+.help-step h3 {
+  margin: 6px 0 8px;
+  font-size: 1rem;
+}
+
+.step-dot {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 800;
+  background: var(--primary);
+  color: #fff;
+}
+
+.pulse-action {
+  animation: pulse-cta 2.4s ease-in-out infinite;
+}
+
 .actions {
   margin: 14px 0;
   display: flex;
@@ -300,6 +344,10 @@ table {
   border-collapse: collapse;
   min-width: 560px;
   background: var(--surface);
+}
+
+tbody tr:hover {
+  background: rgba(122, 200, 212, 0.08);
 }
 
 th,
@@ -426,6 +474,26 @@ td a {
   }
 }
 
+@keyframes soft-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes pulse-cta {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
 @media (max-width: 860px) {
   .topbar {
     justify-content: center;
@@ -449,6 +517,10 @@ td a {
   input,
   select {
     width: 100%;
+  }
+
+  .pulse-action {
+    animation: none;
   }
 
   .container {

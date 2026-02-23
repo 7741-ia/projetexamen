@@ -2,7 +2,28 @@
 
 <section class="hero card">
   <h1>Tableau de bord</h1>
-  <p class="muted">Suivi rapide des collectes, totaux et dernieres operations.</p>
+  <p class="muted">Vue simple de ton activite. Commence par creer une collecte, puis ajoute les paiements.</p>
+</section>
+
+<section class="card">
+  <h2>Guide rapide (3 etapes)</h2>
+  <div class="help-steps">
+    <article class="help-step">
+      <span class="step-dot">1</span>
+      <h3>Creer une collecte</h3>
+      <p class="muted">Nom + type + date. Tu peux aussi choisir un type personnalise.</p>
+    </article>
+    <article class="help-step">
+      <span class="step-dot">2</span>
+      <h3>Ajouter les personnes</h3>
+      <p class="muted">Definis un objectif et une frequence (jour, semaine, mois, annee).</p>
+    </article>
+    <article class="help-step">
+      <span class="step-dot">3</span>
+      <h3>Enregistrer les paiements</h3>
+      <p class="muted">Le statut passe automatiquement a Termine quand l'objectif est atteint.</p>
+    </article>
+  </div>
 </section>
 
 <section class="stats-grid">
@@ -19,7 +40,7 @@
 <section class="card">
   <div class="section-head">
     <h2>Dernieres collectes</h2>
-    <a class="btn btn-primary" href="/collecte">Nouvelle collecte</a>
+    <a class="btn btn-primary pulse-action" href="/collecte">Nouvelle collecte</a>
   </div>
   <% if (!latestCollectes.length) { %>
   <p class="muted">Aucune collecte enregistree.</p>
