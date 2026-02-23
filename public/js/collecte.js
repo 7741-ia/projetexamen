@@ -4,6 +4,27 @@ const totalValue = document.getElementById("totalValue");
 const contributionsBody = document.getElementById("contributionsBody");
 const memberSelect = document.getElementById("memberId");
 const contributorInput = document.getElementById("contributorName");
+const typeSelect = document.getElementById("type");
+const customTypeWrap = document.getElementById("customTypeWrap");
+const customTypeInput = document.getElementById("customType");
+
+function syncCustomTypeVisibility() {
+  if (!typeSelect || !customTypeWrap || !customTypeInput) {
+    return;
+  }
+
+  const isOther = typeSelect.value === "autre";
+  customTypeWrap.classList.toggle("hidden", !isOther);
+  customTypeInput.required = isOther;
+  if (!isOther) {
+    customTypeInput.value = "";
+  }
+}
+
+if (typeSelect) {
+  typeSelect.addEventListener("change", syncCustomTypeVisibility);
+  syncCustomTypeVisibility();
+}
 
 if (memberSelect && contributorInput) {
   memberSelect.addEventListener("change", () => {

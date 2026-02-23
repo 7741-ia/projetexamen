@@ -16,10 +16,14 @@
         <a class="<%= title === 'Dashboard' ? 'active' : '' %>" href="/dashboard">Dashboard</a>
         <a class="<%= title === 'Collecte' ? 'active' : '' %>" href="/collecte">Collecte</a>
         <a class="<%= title === 'Historique' ? 'active' : '' %>" href="/historique">Historique</a>
+        <a class="<%= title === 'Assistant IA' ? 'active' : '' %>" href="/assistant">Assistant IA</a>
         <a class="<%= title === 'A propos' ? 'active' : '' %>" href="/apropos">A propos</a>
       </nav>
-      <form action="/logout" method="POST">
-        <button type="submit" class="btn btn-danger">Deconnexion</button>
-      </form>
+      <div class="header-actions">
+        <button type="button" id="themeToggle" class="btn btn-theme">Theme sombre</button>
+        <form action="/logout" method="POST">
+          <button type="submit" class="btn btn-danger">Deconnexion</button>
+        </form>
+      </div>
     </header>
     <main class="container">

@@ -30,6 +30,16 @@ function normalizeType(type) {
   return allowed.includes(type) ? type : "autre";
 }
 
+function resolveCollecteType(type, customType) {
+  const normalized = normalizeType(type);
+  if (normalized !== "autre") {
+    return normalized;
+  }
+
+  const customValue = String(customType || "").trim();
+  return customValue || "autre";
+}
+
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
 }
@@ -115,6 +125,48 @@ function computeMemberStatuses(collecte) {
       periodLabel: `${formatDateFr(periodStart)} -> ${formatDateFr(nextPeriodStart)}`
     };
   });
+}
+
+function buildAssistantReply(question, collectes) {
+  const text = String(question || "").trim().toLowerCase();
+  if (!text) {
+    return "Pose une question sur tes collectes, tes totaux, ou comment utiliser l'application.";
+  }
+
+  const collectesCount = collectes.length;
+  const totalGlobal = collectes.reduce((sum, collecte) => sum + Number(collecte.total || 0), 0);
+  const totalContributions = collectes.reduce(
+    (sum, collecte) => sum + Number((collecte.contributions || []).length || 0),
+    0
+  );
+
+  if (text.includes("combien") && text.includes("collecte")) {
+    return `Tu as ${collectesCount} collecte(s) enregistree(s).`;
+  }
+  if (text.includes("total") || text.includes("montant")) {
+    return `Ton total global actuel est ${totalGlobal.toLocaleString("fr-FR")} FC.`;
+  }
+  if (text.includes("contribution")) {
+    return `Tu as ${totalContributions} contribution(s) au total dans ton compte.`;
+  }
+  if (text.includes("offrande") || text.includes("tontine") || text.includes("type")) {
+    const types = [...new Set(collectes.map((item) => item.type))];
+    if (!types.length) {
+      return "Aucun type detecte pour le moment. Cree d'abord une collecte.";
+    }
+    return `Types detectes dans ton compte: ${types.join(", ")}.`;
+  }
+  if (text.includes("objectif") || text.includes("personne") || text.includes("statut")) {
+    return "Dans Collecte, ajoute une personne avec montant prevu + frequence. Le statut passe a 'Termine' quand l'objectif est atteint dans la periode courante.";
+  }
+  if (text.includes("export") || text.includes("pdf") || text.includes("excel")) {
+    return "Ouvre une collecte puis clique sur 'Exporter PDF' ou 'Exporter Excel'.";
+  }
+  if (text.includes("mode sombre") || text.includes("dark") || text.includes("clair")) {
+    return "Utilise le bouton Theme en haut a droite pour basculer sombre/clair.";
+  }
+
+  return "Je peux t'aider sur: nombre de collectes, total global, contributions, types, objectifs par personne, export PDF/Excel, mode sombre/clair.";
 }
 
 router.get("/", (req, res) => {
@@ -277,7 +329,7 @@ router.post("/collecte/create", requireAuth, (req, res) => {
     return res.redirect("/login");
   }
 
-  const { name, type, date } = req.body;
+  const { name, type, date, customType } = req.body;
   if (!name || !date) {
     const collectes = getAllCollectes(sessionUser.userId);
     return res.status(400).render("collecte", {
@@ -291,7 +343,7 @@ router.post("/collecte/create", requireAuth, (req, res) => {
 
   const collecte = createCollecte({
     name: name.trim(),
-    type: normalizeType(type),
+    type: resolveCollecteType(type, customType),
     date,
     ownerId: sessionUser.userId,
     ownerUsername: sessionUser.username
@@ -458,6 +510,30 @@ router.get("/apropos", requireAuth, (req, res) => {
     title: "A propos",
     about: config.about,
     monetization: config.monetization
+  });
+});
+
+router.get("/assistant", requireAuth, (req, res) => {
+  return res.render("assistant", {
+    title: "Assistant IA"
+  });
+});
+
+router.post("/assistant/ask", requireAuth, (req, res) => {
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser) {
+    return res.status(401).json({
+      success: false,
+      message: "Session invalide."
+    });
+  }
+
+  const question = String(req.body.question || "");
+  const collectes = getAllCollectes(sessionUser.userId);
+  const answer = buildAssistantReply(question, collectes);
+  return res.json({
+    success: true,
+    answer
   });
 });
 

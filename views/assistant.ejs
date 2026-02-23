@@ -1,0 +1,27 @@
+<%- include("partials/header", { title: title }) %>
+
+<section class="card">
+  <h2>Assistant IA</h2>
+  <p class="muted">
+    Pose une question sur tes collectes, totaux, types, objectifs par personne ou export.
+  </p>
+
+  <form id="assistantForm" class="form-grid">
+    <label for="assistantQuestion">Ta question</label>
+    <input
+      id="assistantQuestion"
+      name="question"
+      type="text"
+      placeholder="Ex: Quel est mon total global ?"
+      required
+    />
+    <button class="btn btn-primary" type="submit">Demander</button>
+  </form>
+
+  <div id="assistantAnswer" class="assistant-answer muted">
+    L'assistant est pret.
+  </div>
+</section>
+
+<script src="/js/assistant.js"></script>
+<%- include("partials/footer") %>
